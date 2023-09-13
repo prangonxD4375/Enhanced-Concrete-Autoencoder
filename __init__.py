@@ -16,16 +16,6 @@ class ConcreteSelect(Layer):
         self.c = 1.0
         super(ConcreteSelect, self).__init__(**kwargs)
         
-
-        this change is a test if it works
-
-           ksbhjfchhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
-        ffffffff
-        ffffffffff
-
-
-
-
     def build(self, input_shape):
         self.temp = self.add_weight(name = 'temp', shape = [], initializer = Constant(self.start_temp), trainable = False)
         self.logits = self.add_weight(name = 'logits', shape = [self.output_dim, input_shape[1]], initializer = glorot_normal(), trainable = True)

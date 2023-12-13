@@ -1,10 +1,14 @@
 import math
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.losses import mean_squared_error
 from tensorflow.keras import backend as K
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Layer, Softmax, Input
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.initializers import Constant, glorot_normal
 from tensorflow.keras.optimizers import Adam
+
 
 class ConcreteSelect(Layer):
     
@@ -13,7 +17,7 @@ class ConcreteSelect(Layer):
         self.start_temp = start_temp
         self.min_temp = K.constant(min_temp)
         self.alpha = K.constant(alpha)
-        self.c = 1.0
+        self.c=75
         super(ConcreteSelect, self).__init__(**kwargs)
         
     def build(self, input_shape):
@@ -21,34 +25,29 @@ class ConcreteSelect(Layer):
         self.logits = self.add_weight(name = 'logits', shape = [self.output_dim, input_shape[1]], initializer = glorot_normal(), trainable = True)
         super(ConcreteSelect, self).build(input_shape)
         
-    def call(self, X, training=None):
+    def call(self, X, training = None):
         uniform = K.random_uniform(self.logits.shape, K.epsilon(), 1.0)
         gumbel = -K.log(-K.log(uniform))
-        temp = self.temp.assign(K.maximum(self.min_temp, self.temp * self.alpha))
+        temp = K.update(self.temp, K.maximum(self.min_temp, self.temp * self.alpha))
         noisy_logits = (self.logits + gumbel) / temp
         samples = K.softmax(noisy_logits)
-    
+        
         discrete_logits = K.one_hot(K.argmax(self.logits), self.logits.shape[1])
+        
         self.selections = K.in_train_phase(samples, discrete_logits, training)
-
         Y = K.dot(X, K.transpose(self.selections))
-    
-        # Calculate C+ as a scalar
-        C_plus = K.sum(K.dot(self.selections, K.transpose(self.selections)))
-        C_plus_loss = -self.c * C_plus
+
+        C_plus =K.sum(K.dot(self.selections, K.transpose(self.selections)))
+        C_plus_loss = self.c * -K.sqrt(C_plus) * tf.math.exp(1 / (1 + temp))
 
         self.add_loss(C_plus_loss, inputs=X)
-    
+
         return Y
-
-
-
-        dfpisjfosifjvpsgfwawefihweofhweifuhweiguhwaogiwgegoiwaghoiwuh
-
-
+    
     
     def compute_output_shape(self, input_shape):
         return (input_shape[0], self.output_dim)
+
     
 class StopperCallback(EarlyStopping):
     
@@ -60,7 +59,8 @@ class StopperCallback(EarlyStopping):
         print('mean max of probabilities:', self.get_monitor_value(logs), '- temperature', K.get_value(self.model.get_layer('concrete_select').temp))
         #print( K.get_value(K.max(K.softmax(self.model.get_layer('concrete_select').logits), axis = -1)))
         #print(K.get_value(K.max(self.model.get_layer('concrete_select').selections, axis = -1)))
-    
+        
+
     def get_monitor_value(self, logs):
         monitor_value = K.get_value(K.mean(K.max(K.softmax(self.model.get_layer('concrete_select').logits), axis = -1)))
         return monitor_value
@@ -77,6 +77,7 @@ class ConcreteAutoencoderFeatureSelector():
         self.start_temp = start_temp
         self.min_temp = min_temp
         self.tryout_limit = tryout_limit
+    
         
     def fit(self, X, Y = None, val_X = None, val_Y = None):
         if Y is None:
@@ -109,13 +110,23 @@ class ConcreteAutoencoderFeatureSelector():
 
             self.model = Model(inputs, outputs)
 
-            self.model.compile(Adam(self.learning_rate), loss = 'mean_squared_error')
+            self.model.compile(Adam(self.learning_rate), loss='mean_squared_error', metrics=['MeanSquaredError'] )
             
             print(self.model.summary())
             
             stopper_callback = StopperCallback()
             
             hist = self.model.fit(X, Y, self.batch_size, num_epochs, verbose = 1, callbacks = [stopper_callback], validation_data = validation_data)#, validation_freq = 10)
+            
+            
+        
+        
+        # this will give you an info whether the training stopped early or not
+
+            # if stopper_callback.stopped_epoch > 0:
+            #     print("Early stopping occurred after epoch", stopper_callback.stopped_epoch)
+            # else:
+            #     print("Training completed without early stopping")
             
             if K.get_value(K.mean(K.max(K.softmax(self.concrete_select.logits, axis = -1)))) >= stopper_callback.mean_max_target:
                 break
@@ -145,3 +156,40 @@ class ConcreteAutoencoderFeatureSelector():
     
     def get_params(self):
         return self.model
+
+    def get_importances(self):
+         return K.get_value(K.softmax(self.model.get_layer('concrete_select').logits))
+
+    def get_indices_and_importances(self):
+         indices = self.get_indices()
+         importances = self.get_importances()
+    
+         combined_data = [(index, importance) for index, importance in zip(indices, importances)]
+    
+         return combined_data
+    
+
+    def print_importances(self):
+         selected_indices = self.get_indices()
+         importance_values = self.get_importances()  # 2D array
+         
+         for i in range(len(selected_indices)):
+             importance = importance_values[i][selected_indices[i]]
+             print(f"importance for index {selected_indices[i]} = {importance}")
+             
+         return selected_indices
+                
+    def print_MAX4_importances(self):
+         selected_indices = self.get_indices()
+         importance_values = self.get_importances()  # 2D array
+        
+
+         for i in range(len(selected_indices)):
+             importance_row = importance_values[i]
+             top4_indices = np.argsort(importance_row)[-4:][::-1]
+             top4_values = importance_row[top4_indices]
+             print(f"importance for index {selected_indices[i]} (top 4) = {top4_values}")
+            
+
+
+    

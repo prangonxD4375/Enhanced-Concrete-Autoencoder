@@ -1,70 +1,54 @@
-# Automated Git Workflow Scripts
+# Custom Cost Function for Concrete Autoencoder
 
-This repository contains two shell scripts that automate certain Git-related tasks: `push_change.sh` and `replace_script.sh`.
-Follow the instructions below to use these scripts effectively.
+This README file provides instructions on how to integrate and use a custom cost function with the Concrete Autoencoder. The custom cost function has been added to enhance the functionality of the original Concrete Autoencoder project by [mfbalin](https://github.com/mfbalin/Concrete-Autoencoders).
 
-## Prerequisites
+## Installation
 
-Before using these scripts, ensure you have the following prerequisites:
+To use the custom cost function, follow these steps:
 
-1. [Git](https://git-scm.com/) installed on your system.
-2. A configured and authenticated [GitHub](https://github.com/) account.
-3. Your Git repository set up and configured properly with the remote repository on GitHub.
-
-## `push_change.sh`
-
-`push_change.sh` automates the process of committing and pushing changes to a specified file in your Git repository.
-It also includes error handling to undo the commit if the push to the remote repository fails.
-
-### Usage
-
-1. Clone your Git repository locally if you haven't already:
+1. Install the Concrete Autoencoder package using pip:
 
    ```bash
-   git clone <repository_url>
-   ```
+   pip install concrete-autoencoder
 
-2. Make changes to the __init__.py file
+Replace the _init_.py file in your local Python installation directory with the one from the original Concrete Autoencoder project. The original file can be found at Python(311)\Lib\site-packages\concrete_autoencoder.
 
-3. Run the script to automatically commit and push changes:
+## Usage
+You can use the custom cost function in your code as follows:
 
-   ```bash
-   ./push_change.sh
-   ```
+```python
+from concrete_autoencoder import ConcreteAutoencoderFeatureSelector
+from keras.datasets import mnist
+from keras.utils import to_categorical
+from keras.layers import Dense, Dropout, LeakyReLU
+import numpy as np
 
-   - If there are no changes in the specified file, the script will exit with a message indicating no changes.
-   - If changes are detected, the script will commit the changes with a commit message that includes the diff and the current date/time.
-   - It will then attempt to push the changes to the "master" branch on GitHub. If the push succeeds, it will display a success message.
-   - If the push fails, the script will display an error message, undo the last commit, and print a message indicating that the commit has been undone.
+# Load MNIST data
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train = np.reshape(x_train, (len(x_train), -1))
+x_test = np.reshape(x_test, (len(x_test), -1))
+y_train = to_categorical(y_train)
+y_test = to_categorical(y_test)
+print(x_train.shape, y_train.shape)
+print(x_test.shape, y_test.shape)
 
-### Customization
+def decoder(x):
+    x = Dense(320)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.1)(x)
+    x = Dense(320)(x)
+    x = LeakyReLU(0.2)(x)
+    x = Dropout(0.1)(x)
+    x = Dense(784)(x)
+    return x
 
-You can customize the script to use a different branch or specify a different file to commit and push changes to by editing the script.
+selector = ConcreteAutoencoderFeatureSelector(K=20, output_function=decoder, num_epochs=800)
 
-## `replace_script.sh`
+selector.fit(x_train, x_train, x_test, x_test)
 
-`replace_script.sh` is designed to replace a specific file in your system with another file of the same name located in the same directory as the script.
+```
 
-### Usage
-1. Make changes to the __init__.py file
+For further details, check the [original Concrete Autoencoder project](https://github.com/mfbalin/Concrete-Autoencoders).
 
-2. Run the script:
 
-   ```bash
-   ./replace_script.sh
-   ```
-
-   - The script will search for the file to replace (`__init__.py` in this case) in the directory where it's located.
-
-   - If the file is found, it will be replaced with the `__init__.py` file located in the same directory as the script.
-
-### Customization
-
-You can customize the script to replace a different file or modify the source file location by editing the script.
-
-## License
-
-These scripts are provided under the [MIT License](LICENSE).
-
-Feel free to modify and use them as needed!
-
+Feel free to explore and experiment with the provided code for your specific use case. If you encounter any issues or have questions, refer to the original project page for further details and discussions.

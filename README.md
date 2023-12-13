@@ -11,10 +11,9 @@ To use the custom cost function, follow these steps:
    ```bash
    pip install concrete-autoencoder
 
-Replace the _init_.py file in your local Python installation directory with the one from the original Concrete Autoencoder project. The original file can be found at Python(311)\Lib\site-packages\concrete_autoencoder.
+Replace the _init_.py file in your local Python installation directory with the one from the original Concrete Autoencoder project. The original file can be found at Python(version)\Lib\site-packages\concrete_autoencoder.
 
 ## Usage
-You can use the custom cost function in your code as follows:
 
 ```python
 from concrete_autoencoder import ConcreteAutoencoderFeatureSelector

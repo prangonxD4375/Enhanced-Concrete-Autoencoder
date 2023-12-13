@@ -2,7 +2,7 @@
 
 
 The custom cost function in the Concrete Autoencoder enhances the feature selection process by introducing a positive feature interaction term (
-C+ ) that identifies and penalizes duplicate or correlated features. Complementing this, an exponential regularization term (C+ loss) with a temperature
+C+ ) that identifies and rewards duplicate or correlated features. Complementing this, an exponential regularization term (C+ loss) with a temperature
 parameter ensures a balanced influence, preventing overfitting and guiding the model to dynamically adapt the importance of features during training.
 This approach facilitates the selection of a subset of the most relevant features, contributing to improved model performance across diverse scenarios and applications.
 
